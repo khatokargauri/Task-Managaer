@@ -1,6 +1,6 @@
 # Full-Stack Task Manager (Python/FastAPI)
 
-A streamlined, functional Task Manager application designed to showcase clean API design and responsive frontend logic. This project was built to satisfy the requirements of the Full Stack Developer Technical Assignment within a strict 2-hour window.
+A streamlined, functional Task Manager application designed to showcase clean API design and responsive frontend logic. 
 
 Key Features:
 * Complete CRUD: Create, View, Toggle Completion, and Delete tasks.
