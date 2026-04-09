@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pro Task Manager</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; max-width: 500px; margin: 40px auto; line-height: 1.6; }
+        .controls { margin-bottom: 20px; display: flex; gap: 10px; }
+        .task-item { display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }
+        .completed { text-decoration: line-through; color: #888; }
+        .btn-del { color: red; cursor: pointer; border: none; background: none; }
+        .filter-btn { cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; background: white; }
+        .active-filter { background: #007bff; color: white; border-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <h2>Task Manager Pro</h2>
+
+    <form id="taskForm" class="controls">
+        <input type="text" id="taskInput" placeholder="New task..." required style="flex-grow:1; padding: 8px;">
+        <button type="submit">Add</button>
+    </form>
+
+    <div class="controls">
+        <button class="filter-btn active-filter" onclick="setFilter('all', this)">All</button>
+        <button class="filter-btn" onclick="setFilter('active', this)">Active</button>
+        <button class="filter-btn" onclick="setFilter('completed', this)">Completed</button>
+    </div>
+
+    <div id="taskList"></div>
+
+    <script>
+        let currentFilter = 'all';
+
+        async function loadTasks() {
+            const res = await fetch('/tasks');
+            let tasks = await res.json();
+
+            // 1. Filter Logic
+            if(currentFilter === 'active') tasks = tasks.filter(t => !t.completed);
+            if(currentFilter === 'completed') tasks = tasks.filter(t => t.completed);
+
+            const list = document.getElementById('taskList');
+            list.innerHTML = '';
+            tasks.forEach(task => {
+                const div = document.createElement('div');
+                div.className = 'task-item';
+                div.innerHTML = `
+                    <div>
+                        <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask('${task.id}', ${!task.completed})">
+                        <span class="${task.completed ? 'completed' : ''}">${task.title}</span>
+                    </div>
+                    <div>
+                        <button onclick="editTask('${task.id}', '${task.title}')">Edit</button>
+                        <button class="btn-del" onclick="deleteTask('${task.id}')">Delete</button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function setFilter(f, btn) {
+            currentFilter = f;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active-filter'));
+            btn.classList.add('active-filter');
+            loadTasks();
+        }
+
+        async function editTask(id, oldTitle) {
+            const newTitle = prompt("Edit task:", oldTitle);
+            if (newTitle && newTitle !== oldTitle) {
+                await fetch(`/tasks/${id}`, {
+                    method: 'PATCH',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ title: newTitle })
+                });
+                loadTasks();
+            }
+        }
+
+        async function toggleTask(id, newState) {
+            await fetch(`/tasks/${id}`, {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ completed: newState })
+            });
+            loadTasks();
+        }
+
+        taskForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('taskInput').value;
+            await fetch('/tasks', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ title })
+            });
+            document.getElementById('taskInput').value = '';
+            loadTasks();
+        };
+
+        async function deleteTask(id) {
+            if(confirm("Delete this task?")) {
+                await fetch(`/tasks/${id}`, { method: 'DELETE' });
+                loadTasks();
+            }
+        }
+
+        loadTasks();
+    </script>
+</body>
+</html>
